@@ -1,23 +1,46 @@
 package main
 
-import term "github.com/nsf/termbox-go"
+import (
+	"bytes"
+	"os"
 
-func main() {
-	err := term.Init()
+	term "github.com/nsf/termbox-go"
+)
+
+func check(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func main() {
+	err := term.Init()
+	check(err)
 	defer term.Close()
 
 	var st state
 	for st.input() {
 		st.render()
 	}
+
+	f, err := os.Create("/tmp/nav-path")
+	check(err)
+	defer f.Close()
+	f.WriteString(st.getPath())
 }
 
 type state struct {
 	path   [][]rune
 	buffer []rune
+}
+
+func (st state) getPath() string {
+	var buffer bytes.Buffer
+	for _, component := range st.path {
+		buffer.WriteString(string(component))
+		buffer.WriteRune('/')
+	}
+	return buffer.String()
 }
 
 func (st *state) input() bool {
