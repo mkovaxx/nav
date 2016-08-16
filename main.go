@@ -44,6 +44,7 @@ type component struct {
 	entries   [][]rune
 	matches   []int
 	selection int
+	width     int
 }
 
 func (c *component) next() {
@@ -87,6 +88,16 @@ func (c *component) list(path string) {
 	c.selection = -1
 	if len(c.matches) > 0 {
 		c.selection = 0
+	}
+	// determine display width
+	WIDTH_MIN := 8
+	WIDTH_MAX := 25
+	c.width = WIDTH_MIN
+	for i := range c.entries {
+		w := len(c.entries[i])
+		if w <= WIDTH_MAX && w > c.width {
+			c.width = w
+		}
 	}
 }
 
@@ -258,7 +269,7 @@ func (st state) render() {
 	term.Clear(term.ColorDefault, term.ColorDefault)
 	// columns
 	_, height := term.Size()
-	columnWidth := 16
+	baseX := 0
 	for i, comp := range st.path {
 		for y := 0; y < height-1; y++ {
 			var line []rune
@@ -272,14 +283,15 @@ func (st state) render() {
 			if y == comp.selection {
 				bg = term.ColorWhite
 			}
-			for x := 0; x < columnWidth; x++ {
+			for x := 0; x < comp.width; x++ {
 				ch := ' '
 				if x < len(line) {
 					ch = line[x]
 				}
-				term.SetCell(i*columnWidth+x, 1+y, ch, fg, bg)
+				term.SetCell(baseX+x, 1+y, ch, fg, bg)
 			}
 		}
+		baseX += comp.width
 	}
 	// path
 	var x int
