@@ -250,9 +250,6 @@ func (st *state) input() bool {
 	case term.EventResize:
 	case term.EventMouse:
 	case term.EventError:
-	case term.EventInterrupt:
-	case term.EventRaw:
-	case term.EventNone:
 	}
 	return true
 }
