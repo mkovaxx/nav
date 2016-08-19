@@ -42,10 +42,14 @@ type state struct {
 }
 
 type component struct {
-	entries   [][]rune
+	entries   []entry
 	matches   []int
 	selection int
 	width     int
+}
+
+type entry struct {
+	name []rune
 }
 
 func (c *component) next() {
@@ -66,11 +70,11 @@ func (c component) isValid() bool {
 	return c.selection >= 0 && c.selection < len(c.matches)
 }
 
-func (c component) getSelected() []rune {
+func (c component) getSelected() *entry {
 	if c.selection < 0 {
 		return nil
 	}
-	return c.entries[c.matches[c.selection]]
+	return &c.entries[c.matches[c.selection]]
 }
 
 func (c *component) list(path string) {
@@ -81,7 +85,10 @@ func (c *component) list(path string) {
 		if !info.IsDir() {
 			continue
 		}
-		c.entries = append(c.entries, []rune(info.Name()))
+		e := entry{
+			name: []rune(info.Name()),
+		}
+		c.entries = append(c.entries, e)
 	}
 	c.selection = -1
 	if len(c.matches) > 0 {
@@ -92,7 +99,7 @@ func (c *component) list(path string) {
 	WIDTH_MAX := 25
 	c.width = WIDTH_MIN
 	for i := range c.entries {
-		w := len(c.entries[i])
+		w := len(c.entries[i].name)
 		if w <= WIDTH_MAX && w > c.width {
 			c.width = w
 		}
@@ -112,7 +119,7 @@ func (c *component) filter(pattern []rune) {
 	c.matches = nil
 	newSelection := -1
 	for i, entry := range c.entries {
-		if strings.HasPrefix(string(entry), string(pattern)) {
+		if strings.HasPrefix(string(entry.name), string(pattern)) {
 			if newSelection == -1 && oldSelection <= i {
 				newSelection = len(c.matches)
 			}
@@ -128,18 +135,18 @@ func (c *component) filter(pattern []rune) {
 func (c *component) commonPrefix() []rune {
 	var cp []rune
 	if len(c.matches) > 0 {
-		cpLen := len(c.entries[c.matches[0]])
+		cpLen := len(c.entries[c.matches[0]].name)
 		for _, idx := range c.matches {
-			entry := c.entries[idx]
-			if len(entry) > cpLen {
-				cpLen = len(entry)
+			name := c.entries[idx].name
+			if len(name) > cpLen {
+				cpLen = len(name)
 			}
 		}
 		for i := 0; i < cpLen; i++ {
-			ch := c.entries[c.matches[0]][i]
+			ch := c.entries[c.matches[0]].name[i]
 			for _, idx := range c.matches {
-				entry := c.entries[idx]
-				if ch != entry[i] {
+				name := c.entries[idx].name
+				if ch != name[i] {
 					return cp
 				}
 			}
@@ -158,7 +165,7 @@ func (st state) getPath(appendBuffer bool) string {
 		// TODO: turn absolute path into one relative to the current dir
 		// needed for better behavior w.r.t. access rights
 		buffer.WriteRune('/')
-		buffer.WriteString(string(component.getSelected()))
+		buffer.WriteString(string(component.getSelected().name))
 	}
 	if appendBuffer {
 		buffer.WriteRune('/')
@@ -176,7 +183,7 @@ func (st *state) setPath(path string) {
 	for i, part := range parts {
 		if i > 0 {
 			for j, entry := range st.path[i-1].entries {
-				if string(entry) == part {
+				if string(entry.name) == part {
 					st.path[i-1].selection = j
 					break
 				}
@@ -276,7 +283,7 @@ func (st state) render() {
 		for y := 0; y < height-1; y++ {
 			var line []rune
 			if y < len(comp.matches) {
-				line = comp.entries[comp.matches[y]]
+				line = comp.entries[comp.matches[y]].name
 			}
 			fg, bg := term.ColorBlack, term.ColorBlue
 			if i&1 == 0 {
