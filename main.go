@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,10 +74,7 @@ func (c component) getSelected() []rune {
 }
 
 func (c *component) list(path string) {
-	f, err := os.Open(path)
-	defer f.Close()
-	check(err)
-	infos, err := f.Readdir(0)
+	infos, err := ioutil.ReadDir(path)
 	check(err)
 	c.entries = nil
 	for _, info := range infos {
