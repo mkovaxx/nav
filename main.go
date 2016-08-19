@@ -32,7 +32,7 @@ func main() {
 	f, err := os.Create("/tmp/nav-path")
 	check(err)
 	defer f.Close()
-	f.WriteString(st.getPath())
+	f.WriteString(st.getPath(false))
 }
 
 type state struct {
@@ -151,7 +151,7 @@ func (c *component) commonPrefix() []rune {
 	return cp
 }
 
-func (st state) getPath() string {
+func (st state) getPath(appendBuffer bool) string {
 	if len(st.path) == 0 {
 		return "/"
 	}
@@ -161,6 +161,10 @@ func (st state) getPath() string {
 		// needed for better behavior w.r.t. access rights
 		buffer.WriteRune('/')
 		buffer.WriteString(string(component.getSelected()))
+	}
+	if appendBuffer {
+		buffer.WriteRune('/')
+		buffer.WriteString(string(st.buffer))
 	}
 	return buffer.String()
 }
@@ -197,7 +201,7 @@ func (st *state) push() {
 		st.buffer = nil
 		st.getCurrent().filter(nil)
 		st.path = append(st.path, component{})
-		st.getCurrent().list(st.getPath())
+		st.getCurrent().list(st.getPath(false))
 		st.getCurrent().filter(nil)
 	}
 }
@@ -294,18 +298,9 @@ func (st state) render() {
 		baseX += comp.width
 	}
 	// path
+	path := st.getPath(true)
 	var x int
-	term.SetCell(x, 0, '/', term.ColorDefault, term.ColorDefault)
-	x++
-	for _, comp := range st.path[0 : len(st.path)-1] {
-		for _, ch := range comp.getSelected() {
-			term.SetCell(x, 0, ch, term.ColorDefault, term.ColorDefault)
-			x++
-		}
-		term.SetCell(x, 0, '/', term.ColorDefault, term.ColorDefault)
-		x++
-	}
-	for _, ch := range st.buffer {
+	for _, ch := range path {
 		term.SetCell(x, 0, ch, term.ColorDefault, term.ColorDefault)
 		x++
 	}
