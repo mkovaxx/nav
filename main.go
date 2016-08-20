@@ -49,7 +49,8 @@ type component struct {
 }
 
 type entry struct {
-	name []rune
+	name      []rune
+	isMatched bool
 }
 
 func (c *component) next() {
@@ -118,8 +119,10 @@ func (c *component) filter(pattern []rune) {
 	}
 	c.matches = nil
 	newSelection := -1
-	for i, entry := range c.entries {
-		if strings.HasPrefix(string(entry.name), string(pattern)) {
+	for i := range c.entries {
+		entry := &c.entries[i]
+		entry.isMatched = strings.HasPrefix(string(entry.name), string(pattern))
+		if entry.isMatched {
 			if newSelection == -1 && oldSelection <= i {
 				newSelection = len(c.matches)
 			}
@@ -282,14 +285,17 @@ func (st state) render() {
 	for i, comp := range st.path {
 		for y := 0; y < height-1; y++ {
 			var line []rune
-			if y < len(comp.matches) {
-				line = comp.entries[comp.matches[y]].name
-			}
 			fg, bg := term.ColorBlack, term.ColorBlue
+			if y < len(comp.entries) {
+				line = comp.entries[y].name
+				if !comp.entries[y].isMatched {
+					fg = term.ColorMagenta
+				}
+			}
 			if i&1 == 0 {
 				bg = term.ColorGreen
 			}
-			if y == comp.selection {
+			if comp.selection >= 0 && y == comp.matches[comp.selection] {
 				bg = term.ColorWhite
 			}
 			for x := 0; x < comp.width; x++ {
