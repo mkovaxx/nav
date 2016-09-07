@@ -11,5 +11,5 @@ go build -o navigate
 # alias
 
 ```
-alias nav='navigate && cd `cat /tmp/nav-path`'
+alias nav='navigate && cd "`cat /tmp/nav-path`"'
 ```
