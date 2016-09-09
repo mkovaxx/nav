@@ -206,7 +206,7 @@ func (st state) getCurrent() *component {
 	return &st.path[len(st.path)-1]
 }
 
-func (st *state) push() {
+func (st *state) descend() {
 	if st.getCurrent().isValid() {
 		st.buffer = nil
 		st.getCurrent().filter(nil)
@@ -216,7 +216,7 @@ func (st *state) push() {
 	}
 }
 
-func (st *state) pop() {
+func (st *state) ascend() {
 	if len(st.path) > 1 {
 		st.path = st.path[0 : len(st.path)-1]
 		st.buffer = nil
@@ -244,7 +244,7 @@ func (st *state) input() bool {
 			case term.KeyEsc:
 				return false
 			case term.KeyArrowLeft:
-				st.pop()
+				st.ascend()
 			case term.KeyArrowDown:
 				if st.getCurrent().isValid() {
 					st.getCurrent().next()
@@ -257,13 +257,13 @@ func (st *state) input() bool {
 				if len(st.buffer) > 0 {
 					st.deleteChar()
 				} else {
-					st.pop()
+					st.ascend()
 				}
 			case term.KeyArrowRight:
-				st.push()
+				st.descend()
 			case term.KeyTab:
 				if len(st.getCurrent().matches) == 1 {
-					st.push()
+					st.descend()
 				} else {
 					st.buffer = st.getCurrent().commonPrefix()
 					st.getCurrent().filter(st.buffer)
