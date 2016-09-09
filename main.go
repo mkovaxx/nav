@@ -46,6 +46,7 @@ type component struct {
 	matches   []int
 	selection int
 	width     int
+	err       error
 }
 
 type entry struct {
@@ -79,13 +80,14 @@ func (c component) getSelected() *entry {
 }
 
 func (c *component) list(path string) {
-	infos, err := ioutil.ReadDir(path)
-	check(err)
 	c.entries = nil
+	infos, err := ioutil.ReadDir(path)
+	if err != nil {
+		c.err = err
+		c.width = len([]rune(err.Error()))
+		return
+	}
 	for _, info := range infos {
-		if !info.IsDir() {
-			continue
-		}
 		e := entry{
 			name: []rune(info.Name()),
 		}
@@ -283,27 +285,38 @@ func (st state) render() {
 	_, height := term.Size()
 	baseX := 0
 	for i, comp := range st.path {
-		for y := 0; y < height-1; y++ {
-			var line []rune
-			fg, bg := term.ColorBlack, term.ColorBlue
-			if y < len(comp.entries) {
-				line = comp.entries[y].name
-				if !comp.entries[y].isMatched {
-					fg = term.ColorMagenta
+		if comp.err != nil {
+			fg, bg := term.ColorWhite, term.ColorRed
+			msg := []rune(comp.err.Error())
+			for y := 0; y < height-1; y++ {
+				for x := 0; x < comp.width; x++ {
+					ch := msg[x]
+					term.SetCell(baseX+x, 1+y, ch, fg, bg)
 				}
 			}
-			if i&1 == 0 {
-				bg = term.ColorGreen
-			}
-			if comp.selection >= 0 && y == comp.matches[comp.selection] {
-				bg = term.ColorWhite
-			}
-			for x := 0; x < comp.width; x++ {
-				ch := ' '
-				if x < len(line) {
-					ch = line[x]
+		} else {
+			for y := 0; y < height-1; y++ {
+				var line []rune
+				fg, bg := term.ColorBlack, term.ColorBlue
+				if y < len(comp.entries) {
+					line = comp.entries[y].name
+					if !comp.entries[y].isMatched {
+						fg = term.ColorMagenta
+					}
 				}
-				term.SetCell(baseX+x, 1+y, ch, fg, bg)
+				if i&1 == 0 {
+					bg = term.ColorGreen
+				}
+				if comp.selection >= 0 && y == comp.matches[comp.selection] {
+					bg = term.ColorWhite
+				}
+				for x := 0; x < comp.width; x++ {
+					ch := ' '
+					if x < len(line) {
+						ch = line[x]
+					}
+					term.SetCell(baseX+x, 1+y, ch, fg, bg)
+				}
 			}
 		}
 		baseX += comp.width
